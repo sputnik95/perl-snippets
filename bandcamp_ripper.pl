@@ -1,21 +1,26 @@
 #!/usr/bin/env perl
+use open ':std', ':encoding(UTF-8)';
 use strict;
+use utf8;
 use warnings;
 use Data::Dumper;
-use LWP::Simple qw(get getstore);
+use Encode qw(encode_utf8);
 use JSON qw(decode_json);
+use LWP::UserAgent;
 use Mojo::DOM;
 use MP3::Tag;
-use utf8;
-use open ':std', ':encoding(UTF-8)';
 
+my $ua = LWP::UserAgent->new(timeout => 15);
+$ua->show_progress(0); #change to 1 for debugging
 get_album();
 
 sub get_album {
-    print "This script will download mp3's into current directory and fill in id3 tags.\n";
+    print "This script will download mp3s into album's subdirectory and fill in id3v2 tags.\n";
     print "Enter album url: ";
     my $url = <>;
     my @track_pages = get_album_page($url);
+    my $length = @track_pages;
+    print "Found " . $length . " tracks. Downloading...\n";
     foreach(@track_pages) {
         get_track($_);
     }
@@ -23,7 +28,8 @@ sub get_album {
 }
 
 sub get_album_page {
-    my $html = get $_[0];
+    my $response = $ua->get($_[0]);
+    $response->is_success ? my $html = $response->decoded_content : die "No response!";
     my $dom = Mojo::DOM->new($html);
     my $root = $dom->at("span[itemprop=byArtist]")->at("a")->attr("href");
     my @track_pages;
@@ -36,23 +42,30 @@ sub get_album_page {
 
 sub fill_tags {
     my $mp3 = MP3::Tag->new($_[0]) or die "No file downloaded!";
-    my @info = $_[1];
-    $mp3->artist_set($info[0]);
-    $mp3->title_set($info[1]);
-    $mp3->album_set($info[2]);
-    $mp3->update_tags();
+    my @info = @{$_[1]};
+	$mp3->update_tags({
+		artist => $info[0],
+		title => $info[1],
+		album => $info[2],
+		year => $info[4],
+	});
+    $mp3->close();
 }
 
 sub get_track {
     my @info = get_track_info($_[0]);
     my $filename = $info[0] . " - " . $info[1] . ".mp3";
-    getstore($info[3], $filename);
-    fill_tags($filename, @info);
-    print "Saved to $filename\n";
+    my $dir = $info[4] . " - " . $info[0] . " - " . $info[2];
+    my $path = $dir . "/" . $filename;
+    mkdir($dir);
+    $ua->mirror($info[3], $path);
+    fill_tags($path, \@info);
+    print "Saved to \"$path\"\n";
 }
 
 sub get_track_page {
-    my $html = get $_[0];
+    my $response = $ua->get($_[0]);
+    $response->is_success ? my $html = $response->decoded_content : die "No response!";
     my $dom = Mojo::DOM->new($html);
     return $dom;
 }
@@ -62,6 +75,9 @@ sub get_track_info {
     my $track_title = $dom->at("h2.trackTitle")->text;
     $track_title =~ s/^\s+|\s+$//g;
     my $track_album = $dom->at("span.fromAlbum")->text;
+    my $track_year = $dom->at("div.tralbumData.tralbum-credits")->text;
+    my @track_year = $track_year =~ m/(\d{4})/;
+    $track_year = $track_year[0];
     my $track_artist = $dom->at("span[itemprop=byArtist]")->at("a")->text;
     my @trackinfo = grep /trackinfo: /mi, split /\n/, $dom;
     my $track_link;
@@ -69,12 +85,12 @@ sub get_track_info {
         my $trackinfo = $trackinfo[0];
         $trackinfo =~ s/^\s+trackinfo: //;
         $trackinfo =~ s/,$//;
-        $trackinfo = decode_json($trackinfo);
+        $trackinfo = decode_json(encode_utf8($trackinfo));
         #print Dumper $trackinfo;
         for my $entry ( @{$trackinfo} ) {
             $track_link = $entry->{file}->{'mp3-128'};
         }
     }
-    return ($track_artist, $track_title, $track_album, $track_link);
+    return ($track_artist, $track_title, $track_album, $track_link, $track_year);
 }
 
