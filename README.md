@@ -13,6 +13,7 @@ Saved to "2015 - Pinkshinyultrablast - Grandfeathered/01. Pinkshinyultrablast - 
 Saved to "2015 - Pinkshinyultrablast - Grandfeathered/02. Pinkshinyultrablast - The Cherry Pit.mp3"
 Done
 ```
+Run script without any parameters for help.
 #### brightness.pl
 Dmenu-powered simple screen brightness changer. Could be useful for minimal installs.
 Takes in a number of brightness percentage (without a percent sign) and puts it in `/sys/class/backlight/acpi_video0/brightness`, thus effectively changing screen brightness.
@@ -24,21 +25,18 @@ And invoke the script with a prepending sudo:
 ```sh
 sudo dmenu_brightness
 ```
-#### filename_epoch.pl
-Script used to rename each file in current directory to unix time (or epoch time) in microseconds.
-Output example: 
+#### filename_converter.pl
+Script used to rename each file in current directory to either:  
+a) Unix time (or epoch time) in microseconds;  
+b) Latin from cyrillic (could be useful on web servers).  
+Output example:  
 ```sh
- 8:03PM ~/Downloads$ filename_epoch -y
--1.jpg -> 1589303022049845.jpg
-0A0A44E8-BE23-443A-A26A-FC5D75525347.jpg -> 1589303022049920.jpg
-++++++Nature of Man.png -> 1589303022049942.png
-191ZOIN-sbI.jpg -> 1589303022049958.jpg
- 8:03PM ~/Downloads$ ls -1                                                    
-1589303022049845.jpg
-1589303022049920.jpg
-1589303022049942.png
-1589303022049958.jpg
+ 8:03PM ~/Downloads$ filename_converter -e
+191ZOIN-sbI.jpg  -> 1589303022049958.jpg
+ 8:03PM ~/Downloads/2$ filename_converter -t
+пример файла.doc -> primer_faila.doc
 ```
+Run script without any parameters for help.
 #### network_traffic.pl
 This script outputs current traffic usage per second. Could be used as a widget on some kind of bar (like dzenbar or lemonbar) that continously loops the script and displays it's output. Needs a device name passed as a parameter.  
 Output example:
