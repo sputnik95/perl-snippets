@@ -9,8 +9,8 @@ Script output example:
 ```sh
 7:48PM ~/Downloads$ bandcamp_ripper https://pinkshinyultrablast.bandcamp.com/album/grandfeathered
 Found 2 tracks. Downloading...
-Saved to "2015 - Pinkshinyultrablast - Grandfeathered/Pinkshinyultrablast - Kiddy pool dreams.mp3"
-Saved to "2015 - Pinkshinyultrablast - Grandfeathered/Pinkshinyultrablast - The Cherry Pit.mp3"
+Saved to "2015 - Pinkshinyultrablast - Grandfeathered/01. Pinkshinyultrablast - Kiddy pool dreams.mp3"
+Saved to "2015 - Pinkshinyultrablast - Grandfeathered/02. Pinkshinyultrablast - The Cherry Pit.mp3"
 Done
 ```
 #### brightness.pl

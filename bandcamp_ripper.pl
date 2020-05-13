@@ -5,7 +5,7 @@ use utf8;
 use warnings;
 #use Data::Dumper;
 use Encode qw(encode_utf8);
-use JSON qw(decode_json);
+use JSON::PP;
 use LWP::UserAgent;
 use Mojo::DOM;
 use MP3::Tag;
@@ -18,12 +18,13 @@ main();
 sub fill_tags {
     my $mp3 = MP3::Tag->new($_[0]) or die "No file downloaded!";
     my @info = @{$_[1]};
-	$mp3->update_tags({
-		artist => $info[0],
-		title => $info[1],
-		album => $info[2],
-		year => $info[4],
-	});
+    my $id3v2 = $mp3->new_tag("ID3v2");
+    $id3v2->artist($info[0]);
+    $id3v2->title($info[1]);
+    $id3v2->album($info[2]);
+    $id3v2->year($info[4]);
+    $id3v2->track($info[5]);
+    $id3v2->write_tag();
     $mp3->close();
 }
 
@@ -44,7 +45,7 @@ sub get_track_info {
     $track_year = $track_year[0];
     my $track_artist = $dom->at("span[itemprop=byArtist]")->at("a")->text;
     my @trackinfo = grep /trackinfo: /mi, split /\n/, $dom;
-    my $track_link;
+    my ($track_link, $track_num);
     if (@trackinfo) {
         my $trackinfo = $trackinfo[0];
         $trackinfo =~ s/^\s+trackinfo: //;
@@ -53,14 +54,16 @@ sub get_track_info {
         #print Dumper $trackinfo;
         for my $entry ( @{$trackinfo} ) {
             $track_link = $entry->{file}->{'mp3-128'};
+            $track_num = $entry->{track_num};
+            $track_num = sprintf("%02d", $track_num);
         }
     }
-    return ($track_artist, $track_title, $track_album, $track_link, $track_year);
+    return ($track_artist, $track_title, $track_album, $track_link, $track_year, $track_num);
 }
 
 sub get_track {
     my @info = get_track_info($_[0]);
-    my $filename = $info[0] . " - " . $info[1] . ".mp3";
+    my $filename = $info[5] . ". " . $info[0] . " - " . $info[1] . ".mp3";
     my $dir = $info[4] . " - " . $info[0] . " - " . $info[2];
     my $path = $dir . "/" . $filename;
     mkdir($dir);
@@ -94,6 +97,11 @@ sub get_album {
 
 sub main {
     my $url = (exists($ARGV[0]) ? $ARGV[0] : "");
-    $url eq "" ? print "\nThis script will download mp3s into album's subdirectory and populate each file with id3v2 tags.\nPass bandcamp album link as a parameter in order to start the download:\n\n\$ ./script.pl https://80beats.bandcamp.com/album/the-bodega-tape\n\$ perl script.pl https://80beats.bandcamp.com/album/the-bodega-tape\n\nYou may also want to copy the script somewhere in your \$PATH to be able to execute it from any directory.\n\n" : get_album($url);
-}
+    $url eq "" ? print "\nThis script will download mp3s into album's subdirectory and populate each file with id3v2 tags.
+Pass bandcamp album link as a parameter in order to start the download:
 
+\$ ./script.pl https://80beats.bandcamp.com/album/the-bodega-tape
+\$ perl script.pl https://80beats.bandcamp.com/album/the-bodega-tape
+
+You may also want to copy the script somewhere in your \$PATH to be able to execute it from any directory.\n\n" : get_album($url);
+}
